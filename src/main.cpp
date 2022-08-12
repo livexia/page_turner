@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <BleKeyboard.h>
 #include <driver/rtc_io.h>
+#include <driver/timer.h>
 
 /*
   Blink with two button
@@ -14,6 +15,8 @@ uint32_t chipId = 0;
 int ONBOARD_LED = 2;
 int button1Pin = 32;
 int button2Pin = 27;
+hw_timer_t *timer = NULL;
+uint64_t last_time_pressed;
 
 #define BUTTON_PIN_BITMASK 0x108000000 // GPIOs 2 and 15
 
@@ -71,16 +74,7 @@ void setup()
     // Print the GPIO used to wake up
     print_GPIO_wake_up();
 
-    /*
-    First we configure the wake up source
-    We set our ESP32 to wake up for an external trigger.
-    There are two types for ESP32, ext0 and ext1 .
-    ext0 uses RTC_IO to wakeup thus requires RTC peripherals
-    to be on while ext1 uses RTC Controller so doesnt need
-    peripherals to be powered on.
-    Note that using internal pullups/pulldowns also requires
-    RTC peripherals to be turned on.
-    */
+    // deep sleep
 
     // If you were to use ext1, you would use it like
     // To use internal pullup or pulldown resistors,
@@ -92,23 +86,16 @@ void setup()
     rtc_gpio_pullup_en(GPIO_NUM_32);
     rtc_gpio_pulldown_dis(GPIO_NUM_32);
 
-    Serial.println(digitalRead(GPIO_NUM_27));
-    Serial.println(digitalRead(GPIO_NUM_32));
     esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ALL_LOW);
 
+    // light sleep
     gpio_wakeup_enable(GPIO_NUM_27, GPIO_INTR_LOW_LEVEL);
     gpio_wakeup_enable(GPIO_NUM_32, GPIO_INTR_LOW_LEVEL);
     esp_sleep_enable_gpio_wakeup();
-    Serial.println("Going to light sleep now");
-    delay(1000);
-    esp_light_sleep_start();
-
-    // Go to sleep now
-    Serial.println("Going to deep sleep now");
-    delay(1000);
-    esp_deep_sleep_start();
 
     Serial.println("Starting BLE work!");
+    rtc_gpio_deinit(GPIO_NUM_27);
+    rtc_gpio_deinit(GPIO_NUM_32);
     bleKeyboard.begin();
 
     // put your setup code here, to run once:
@@ -126,26 +113,40 @@ void setup()
     Serial.printf("This chip has %d cores\n", ESP.getChipCores());
     Serial.print("Chip ID: ");
     Serial.println(chipId);
-    delay(300);
-
-    Serial.printf("Init Blink");
+    Serial.println("Init Blink");
     digitalWrite(ONBOARD_LED, HIGH);
-    delay(500);
+    delay(300);
     digitalWrite(ONBOARD_LED, LOW);
+
+    // setup timer
+    timer = timerBegin(0, 80, true);
+    last_time_pressed = timerRead(timer);
 }
 
 void loop()
 {
     if (bleKeyboard.isConnected())
     {
+        if (timerRead(timer) - last_time_pressed > 10 * 1000000)
+        {
+            // after 10s no press light sleep
+            Serial.println("Going to light sleep now");
+            esp_light_sleep_start();
+        }
+        else if (timerRead(timer) - last_time_pressed > 15 * 1000000)
+        {
+            // after 300s no press deep sleep, maybe need a timer to weakup, and put it into deep sleep
+            Serial.println("Going to deep sleep now");
+            esp_deep_sleep_start();
+        }
         int buttonValue = digitalRead(button1Pin);
         if (buttonValue == LOW)
         {
             digitalWrite(ONBOARD_LED, HIGH);
             Serial.println("Button 1 Pushed");
             bleKeyboard.write(KEY_LEFT_ARROW);
-
-            delay(300);
+            delay(150);
+            last_time_pressed = timerRead(timer);
         }
         else
         {
@@ -158,11 +159,21 @@ void loop()
             digitalWrite(ONBOARD_LED, HIGH);
             Serial.println("BUtton 2 Pushed");
             bleKeyboard.write(KEY_RIGHT_ARROW);
-            delay(300);
+            delay(150);
+            last_time_pressed = timerRead(timer);
         }
         else
         {
             digitalWrite(ONBOARD_LED, LOW);
+        }
+    }
+    else
+    {
+        if (timerRead(timer) - last_time_pressed > 300 * 1000000)
+        {
+            Serial.println("Going to deep sleep now");
+            delay(1000);
+            esp_deep_sleep_start();
         }
     }
 }
