@@ -81,7 +81,6 @@ void setup()
     Note that using internal pullups/pulldowns also requires
     RTC peripherals to be turned on.
     */
-    // esp_deep_sleep_enable_ext0_wakeup(GPIO_NUM_15,1); //1 = High, 0 = Low
 
     // If you were to use ext1, you would use it like
     // To use internal pullup or pulldown resistors,
@@ -92,16 +91,22 @@ void setup()
     rtc_gpio_pulldown_dis(GPIO_NUM_27);
     rtc_gpio_pullup_en(GPIO_NUM_32);
     rtc_gpio_pulldown_dis(GPIO_NUM_32);
-    // esp_sleep_enable_ext0_wakeup(GPIO_NUM_32, 0); // 1 = High, 0 = Low
+
     Serial.println(digitalRead(GPIO_NUM_27));
     Serial.println(digitalRead(GPIO_NUM_32));
     esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ALL_LOW);
 
+    gpio_wakeup_enable(GPIO_NUM_27, GPIO_INTR_LOW_LEVEL);
+    gpio_wakeup_enable(GPIO_NUM_32, GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    Serial.println("Going to light sleep now");
+    delay(1000);
+    esp_light_sleep_start();
+
     // Go to sleep now
-    Serial.println("Going to sleep now");
+    Serial.println("Going to deep sleep now");
     delay(1000);
     esp_deep_sleep_start();
-    Serial.println("This will never be printed");
 
     Serial.println("Starting BLE work!");
     bleKeyboard.begin();
