@@ -99,7 +99,7 @@ void setup()
     bleKeyboard.begin();
 
     // put your setup code here, to run once:
-    delay(3000);
+    delay(300);
     pinMode(ONBOARD_LED, OUTPUT);
 
     pinMode(button1Pin, INPUT_PULLUP);
@@ -127,16 +127,18 @@ void loop()
 {
     if (bleKeyboard.isConnected())
     {
-        if (timerRead(timer) - last_time_pressed > 10 * 1000000)
+        if (timerRead(timer) - last_time_pressed > 60 * 1000000)
         {
             // after 10s no press light sleep
-            Serial.println("Going to light sleep now");
+            Serial.println("Beacuse there is no press after 10s, going to light sleep now");
+            delay(300);
             esp_light_sleep_start();
         }
-        else if (timerRead(timer) - last_time_pressed > 15 * 1000000)
+        else if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
             // after 300s no press deep sleep, maybe need a timer to weakup, and put it into deep sleep
-            Serial.println("Going to deep sleep now");
+            Serial.println("Beacuse there is no press after 300s, going to deep sleep now");
+            delay(300);
             esp_deep_sleep_start();
         }
         int buttonValue = digitalRead(button1Pin);
@@ -157,7 +159,7 @@ void loop()
         if (buttonValue == LOW)
         {
             digitalWrite(ONBOARD_LED, HIGH);
-            Serial.println("BUtton 2 Pushed");
+            Serial.println("Button 2 Pushed");
             bleKeyboard.write(KEY_RIGHT_ARROW);
             delay(150);
             last_time_pressed = timerRead(timer);
@@ -171,9 +173,12 @@ void loop()
     {
         if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
-            Serial.println("Going to deep sleep now");
+            Serial.print(300 * 1000000);
+            Serial.println("Beacuse there is no bluetooth connect after 300s, going to deep sleep now");
             delay(1000);
             esp_deep_sleep_start();
         }
+        Serial.println("disconnected");
+        delay(1000);
     }
 }
