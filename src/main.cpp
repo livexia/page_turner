@@ -117,7 +117,6 @@ void setup()
     Serial.printf("ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
     Serial.printf("This chip has %d cores\n", ESP.getChipCores());
     Serial.printf("Chip ID: %d\n", chipId);
-    Serial.println("Init Blink");
 
     // setup timer
     timer = timerBegin(0, 80, true);
