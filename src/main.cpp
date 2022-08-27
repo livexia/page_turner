@@ -139,7 +139,7 @@ void press_button(int buttonPin, uint8_t KEY)
         last_time_pressed = timerRead(timer);
         pressed_time++;
     }
-    if (pressed_time > 0)
+    if (pressed_time)
     {
         digitalWrite(ONBOARD_LED, LOW);
         bleKeyboard.write(KEY);
@@ -155,14 +155,12 @@ void loop()
         {
             // after 10s no press light sleep
             Serial.println("Beacuse there is no press after 10s, going to light sleep now");
-            delay(300);
             esp_light_sleep_start();
         }
         else if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
             // after 300s no press deep sleep, maybe need a timer to weakup, and put it into deep sleep
             Serial.println("Beacuse there is no press after 300s, going to deep sleep now");
-            delay(300);
             esp_deep_sleep_start();
         }
         press_button(button1Pin, KEY_LEFT_ARROW);
@@ -173,7 +171,6 @@ void loop()
         if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
             Serial.println("Beacuse there is no bluetooth connect after 300s, going to deep sleep now");
-            delay(1000);
             esp_deep_sleep_start();
         }
         Serial.println("disconnected");
