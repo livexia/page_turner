@@ -100,7 +100,8 @@ void setup()
     rtc_gpio_deinit(GPIO_NUM_32);
     bleKeyboard.begin();
 
-    wifiManager.autoConnect();
+    // disable for now
+    // wifiManager.autoConnect();
 
     // put your setup code here, to run once:
     delay(300);
@@ -127,6 +128,25 @@ void setup()
     last_time_pressed = timerRead(timer);
 }
 
+void press_button(int buttonPin, uint8_t KEY)
+{
+    int buttonValue = digitalRead(buttonPin);
+    int pressed_time = 0;
+    while (buttonValue == LOW)
+    {
+        buttonValue = digitalRead(buttonPin);
+        digitalWrite(ONBOARD_LED, HIGH);
+        last_time_pressed = timerRead(timer);
+        pressed_time++;
+    }
+    if (pressed_time > 0)
+    {
+        digitalWrite(ONBOARD_LED, LOW);
+        bleKeyboard.write(KEY);
+        Serial.printf("Pin %d on HIGH, key id: %d, pressed time: %d\n", buttonPin, KEY, pressed_time);
+    }
+}
+
 void loop()
 {
     if (bleKeyboard.isConnected())
@@ -145,33 +165,8 @@ void loop()
             delay(300);
             esp_deep_sleep_start();
         }
-        int buttonValue = digitalRead(button1Pin);
-        if (buttonValue == LOW)
-        {
-            digitalWrite(ONBOARD_LED, HIGH);
-            Serial.println("Button 1 Pushed");
-            bleKeyboard.write(KEY_LEFT_ARROW);
-            delay(150);
-            last_time_pressed = timerRead(timer);
-        }
-        else
-        {
-            digitalWrite(ONBOARD_LED, LOW);
-        }
-
-        buttonValue = digitalRead(button2Pin);
-        if (buttonValue == LOW)
-        {
-            digitalWrite(ONBOARD_LED, HIGH);
-            Serial.println("Button 2 Pushed");
-            bleKeyboard.write(KEY_RIGHT_ARROW);
-            delay(150);
-            last_time_pressed = timerRead(timer);
-        }
-        else
-        {
-            digitalWrite(ONBOARD_LED, LOW);
-        }
+        press_button(button1Pin, KEY_LEFT_ARROW);
+        press_button(button2Pin, KEY_RIGHT_ARROW);
     }
     else
     {
