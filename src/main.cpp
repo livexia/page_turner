@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <BleKeyboard.h>
+#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
 #include <driver/rtc_io.h>
 #include <driver/timer.h>
 
@@ -10,6 +11,7 @@
 */
 
 BleKeyboard bleKeyboard;
+WiFiManager wifiManager;
 
 uint32_t chipId = 0;
 int ONBOARD_LED = 2;
@@ -98,6 +100,8 @@ void setup()
     rtc_gpio_deinit(GPIO_NUM_32);
     bleKeyboard.begin();
 
+    wifiManager.autoConnect();
+
     // put your setup code here, to run once:
     delay(300);
     pinMode(ONBOARD_LED, OUTPUT);
@@ -173,7 +177,6 @@ void loop()
     {
         if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
-            Serial.print(300 * 1000000);
             Serial.println("Beacuse there is no bluetooth connect after 300s, going to deep sleep now");
             delay(1000);
             esp_deep_sleep_start();
