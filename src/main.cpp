@@ -131,12 +131,13 @@ void press_button(int buttonPin, uint8_t KEY)
     {
         buttonValue = digitalRead(buttonPin);
         digitalWrite(ONBOARD_LED, HIGH);
-        last_time_pressed = timerRead(timer);
         pressed_time++;
     }
-    if (pressed_time)
+    // pressed_time > 10000 to avoid ghost press
+    if (pressed_time > 10000)
     {
         digitalWrite(ONBOARD_LED, LOW);
+        last_time_pressed = timerRead(timer);
         bleKeyboard.write(KEY);
         Serial.printf("Pin %d on HIGH, key id: %d, pressed time: %d\n", buttonPin, KEY, pressed_time);
     }
@@ -146,7 +147,7 @@ void loop()
 {
     if (bleKeyboard.isConnected())
     {
-        if (timerRead(timer) - last_time_pressed > 60 * 1000000)
+        if (timerRead(timer) - last_time_pressed > 10 * 1000000)
         {
             // after 10s no press light sleep
             Serial.println("Beacuse there is no press after 10s, going to light sleep now");
