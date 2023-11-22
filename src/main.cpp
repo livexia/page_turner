@@ -1,14 +1,14 @@
-#include <Arduino.h>
-#include <BleKeyboard.h>
-#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
-#include <driver/rtc_io.h>
-#include <driver/timer.h>
-
 /*
   Blink with two button
   Button 1 is left
   Button 2 is right
 */
+
+#include <Arduino.h>
+#include <BleKeyboard.h>
+#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
+#include <driver/rtc_io.h>
+#include <driver/timer.h>
 
 BleKeyboard bleKeyboard;
 WiFiManager wifiManager;
@@ -58,6 +58,26 @@ void print_GPIO_wake_up()
     uint64_t GPIO_reason = esp_sleep_get_ext1_wakeup_status();
     Serial.print("GPIO that triggered the wake up: GPIO ");
     Serial.println((log(GPIO_reason)) / log(2), 0);
+}
+
+void press_button(int buttonPin, uint8_t KEY)
+{
+    int buttonValue = digitalRead(buttonPin);
+    int pressed_time = 0;
+    while (buttonValue == LOW)
+    {
+        buttonValue = digitalRead(buttonPin);
+        digitalWrite(ONBOARD_LED, HIGH);
+        pressed_time++;
+    }
+    // pressed_time > 100000 to avoid ghost press
+    if (pressed_time > 100000)
+    {
+        digitalWrite(ONBOARD_LED, LOW);
+        last_time_pressed = timerRead(timer);
+        bleKeyboard.write(KEY);
+        Serial.printf("Pin %d on HIGH, key id: %d, pressed time: %d\n", buttonPin, KEY, pressed_time);
+    }
 }
 
 void setup()
@@ -123,26 +143,6 @@ void setup()
     last_time_pressed = timerRead(timer);
 }
 
-void press_button(int buttonPin, uint8_t KEY)
-{
-    int buttonValue = digitalRead(buttonPin);
-    int pressed_time = 0;
-    while (buttonValue == LOW)
-    {
-        buttonValue = digitalRead(buttonPin);
-        digitalWrite(ONBOARD_LED, HIGH);
-        pressed_time++;
-    }
-    // pressed_time > 10000 to avoid ghost press
-    if (pressed_time > 10000)
-    {
-        digitalWrite(ONBOARD_LED, LOW);
-        last_time_pressed = timerRead(timer);
-        bleKeyboard.write(KEY);
-        Serial.printf("Pin %d on HIGH, key id: %d, pressed time: %d\n", buttonPin, KEY, pressed_time);
-    }
-}
-
 void loop()
 {
     if (bleKeyboard.isConnected())
@@ -153,6 +153,7 @@ void loop()
             Serial.println("Beacuse there is no press after 10s, going to light sleep now");
             delay(300);
             esp_light_sleep_start();
+            Serial.println("disconnected");
         }
         else if (timerRead(timer) - last_time_pressed > 300 * 1000000)
         {
@@ -172,7 +173,6 @@ void loop()
             delay(300);
             esp_deep_sleep_start();
         }
-        Serial.println("disconnected");
-        delay(1000);
+        delay(500);
     }
 }
